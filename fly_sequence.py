@@ -1,12 +1,8 @@
 import math
 import time
 
-import cflib.crtp
-from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
-from cflib.utils import uri_helper
 
 
 def wait_for_position_estimator(scf):
@@ -49,14 +45,6 @@ def wait_for_position_estimator(scf):
                     max_z - min_z) < threshold:
                 break
 
-def set_initial_position(scf, x, y, z, yaw_deg):
-    scf.cf.param.set_value('kalman.initialX', x)
-    scf.cf.param.set_value('kalman.initialY', y)
-    scf.cf.param.set_value('kalman.initialZ', z)
-
-    yaw_radians = math.radians(yaw_deg)
-    scf.cf.param.set_value('kalman.initialYaw', yaw_radians)
-
 def reset_estimator(scf):
     cf = scf.cf
     cf.param.set_value('kalman.resetEstimation', '1')
@@ -84,15 +72,15 @@ def start_position_printing(scf):
     log_conf.start()
 
 
-def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
+def run_sequence(scf, sequence, yaw):
     cf = scf.cf
 
     for position in sequence:
         print('Setting position {}'.format(position))
 
-        x = position[0] + base_x
-        y = position[1] + base_y
-        z = position[2] + base_z
+        x = position[0]
+        y = position[1]
+        z = position[2]
 
         for i in range(50):
             cf.commander.send_position_setpoint(x, y, z, yaw)
