@@ -72,18 +72,16 @@ def start_position_printing(scf):
     log_conf.start()
 
 
-def run_sequence(scf, sequence, yaw):
+def run_sequence(scf, sequence, delta_t):
     cf = scf.cf
 
     for position in sequence:
         print('Setting position {}'.format(position))
-
-        x = position[0]
-        y = position[1]
-        z = position[2]
-
-        for i in range(50):
-            cf.commander.send_position_setpoint(x, y, z, yaw)
+        for i in range(delta_t * 10):
+            cf.commander.send_position_setpoint(position[0],
+                                                position[1],
+                                                position[2],
+                                                position[3])
             time.sleep(0.1)
 
     cf.commander.send_stop_setpoint()
