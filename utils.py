@@ -1,8 +1,5 @@
 import numpy as np
 
-vertices1 = [(0, 0.3), (0, 0.605), (1.22, 0.605), (1.22, 0.3)]
-vertices2 = [(0, -0.3), (0, -0.605), (1.22, -0.605), (1.22, -0.3)]
-
 
 class Obstacle:
     def __init__(self, vertices):
@@ -18,41 +15,22 @@ class Obstacle:
         self.right = min([vertex[0] for vertex in vertices])
 
 
-class Node:
-    def __init__(self, position, is_obstacle, parent=None, cost=0, heuristic=0):
-        self.position = position
-        self.is_obstacle = is_obstacle
-        self.parent = parent
-        self.cost = cost  # cost to reach node from starting point
-        self.heuristic = heuristic  # cost to reach end from current position
-        self.f_cost = self.heuristic + self.cost
-
-    def __sort__(self, other_node):
-        return (
-            self.f_cost < other_node.f_cost
-        )  # returns true if the node is less costly than another node
-
-
 class Map:
     # here we give our start and end, and this class will calculate
     #  obstacles is a list of obstacle objects
-    def __init__(self, bottomleft, dim_x, dim_y, obstacles, drone_dim):
-        self.bottomleft = bottomleft
+    def __init__(self, origin, dim_x, dim_y, obstacles, drone_dim):
+        self.origin = origin
         self.dim_x = dim_x
         self.dim_y = dim_y
 
         self.extents = [
-            (self.bottomleft[0], self.bottomleft[1] + self.dim_y),
-            (self.bottomleft[0] + self.dim_x, self.bottomleft[1] + self.dim_y),
-            (self.bottomleft[0], self.bottomleft[1])(
-                self.bottomleft[0] + self.dim_x, self.bottomleft[1]
-            ),
+            (0, self.dim_y),
+            (self.dim_x, self.dim_y),
+            (0, 0),
+            (self.dim_x, 0)
         ]
 
-        self.array = np.zeros(((dim_x / drone_dim), (dim_y / drone_dim)))
-
-    # function that does a*, spits out waypoints and path
-    #
+        self.array = [[Node(coords=(x,y)) for x in range(int(dim_x / drone_dim))] for y in range(int(dim_y / drone_dim))]
 
 class Node:
     """
@@ -60,17 +38,21 @@ class Node:
     size of the Crazyflie drone.
 
     Attributes:
-        coords (2 double tuple): Coordinates of the node in the map
-        is_obstacle (bool): Whether the node is an obstacle
+        _coords (2 double tuple): Coordinates of the node in the map
+        _is_obstacle (bool): Whether the node is an obstacle
         parent (Node): Parent of this node for A*
-        heuristic (double): Heuristic value to evaluate Node viability for A*
+        _cost (double): Cost value for distance from start to node position
+        _heuristic (double): Heuristic value for distance to end from node position
+        _f_cost (double): Total cost of node
     """      
     def __init__(self, coords = (0.0, 0.0)):
         """ Creates a new Node with coordinates """
         self._coords = coords
         self._is_obstacle = False
-        self.parent = Node()
-        self.heuristic = 0
+        self.parent = None
+        self._cost = 0
+        self._heuristic = 0
+        self._f_cost = self.heuristic + self.cost
     
     @property
     def coords(self):
@@ -81,8 +63,17 @@ class Node:
         return self._is_obstacle
     
     @property
+    def cost(self):
+        return self._cost
+
+    @property
     def heuristic(self):
-        return self.heuristic
+        return self._heuristic
+
+    @property
+    def f_cost(self):
+        self._f_cost = self._cost + self._heuristic
+        return self._f_cost
 
     def get_parent(self):
         return self.parent
@@ -91,7 +82,13 @@ class Node:
         self._is_obstacle = val
     
     def set_heuristic(self, val):
-        self.heuristic = val
+        self._heuristic = val
+
+    def set_cost(self, val):
+        self._cost = val
     
     def set_parent(self, val):
         self.parent = val
+
+    def __sort__(self, other_node):
+        return (self.f_cost < other_node.f_cost)
