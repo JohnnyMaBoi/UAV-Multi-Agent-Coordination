@@ -1,5 +1,4 @@
-import numpy as np
-
+import matplotlib.pyplot as plt
 
 class Obstacle:
     def __init__(self, vertices):
@@ -12,16 +11,18 @@ class Obstacle:
         self.top = max([vertex[1] for vertex in vertices])
         self.bottom = min([vertex[1] for vertex in vertices])
         self.left = min([vertex[0] for vertex in vertices])
-        self.right = min([vertex[0] for vertex in vertices])
+        self.right = max([vertex[0] for vertex in vertices])
 
 
 class Map:
     # here we give our start and end, and this class will calculate
     #  obstacles is a list of obstacle objects
-    def __init__(self, origin, dim_x, dim_y, obstacles, drone_dim):
+    def __init__(self, origin=(0,0), dim_x=0, dim_y=0, obstacles=[], drone_dim=0.1):
         self.origin = origin
         self.dim_x = dim_x
         self.dim_y = dim_y
+        self.drone_dim = drone_dim
+        self.obstacles = obstacles
 
         self.extents = [
             (0, self.dim_y),
@@ -32,7 +33,32 @@ class Map:
 
         self.array = [[Node(coords=(x,y)) for x in range(int(dim_x / drone_dim))] for y in range(int(dim_y / drone_dim))]
 
-        # Fill nodes that are obstacles here
+        self.create_obstacles(obstacles)
+    
+    def create_obstacles(self, obstacles):
+        for o in obstacles:
+            top = int((o.top + self.origin[1])/self.drone_dim)
+            bottom = int((o.bottom + self.origin[1])/self.drone_dim)
+            left = int((o.left + self.origin[0])/self.drone_dim)
+            right = int((o.right + self.origin[0])/self.drone_dim)
+            print(f"{top=}, {bottom=}, {left=}, {right=}")
+            for y in range(bottom, top+1):
+                for x in range(left, right+1):
+                    self.array[y][x].set_obstacle(True)
+
+    def visualize_map(self):
+        obstacles_x =  []
+        obstacles_y = []
+        for y in range(len(self.array)):
+            for x in range(len(self.array[0])):
+                if self.array[y][x].is_obstacle:
+                    obstacles_x.append(x)
+                    obstacles_y.append(y)
+
+        plt.scatter(obstacles_x, obstacles_y)
+        plt.xlim([0, len(self.array[0])])
+        plt.ylim([0, len(self.array)])
+        plt.show()
     
     def a_star(self, start, end):
         pass

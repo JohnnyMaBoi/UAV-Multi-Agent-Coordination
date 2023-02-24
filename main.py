@@ -5,6 +5,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from fly_sequence import reset_estimator, run_sequence, start_position_printing
+from utils import Obstacle, Map, Node
 
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/60/2M/E7E7E7E7E7')
@@ -45,20 +46,32 @@ hover_height = 0.45
 # Lighthouse origin relative to bottom left of map
 map_origin = (1, 1)
 
+map_dim_x = 3.5
+map_dim_y = 2
+
 if __name__ == '__main__':
-    cflib.crtp.init_drivers()
 
-    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+    obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
+    map = Map(origin=map_origin, dim_x=map_dim_x, dim_y=map_dim_y, obstacles=obstacle_list, drone_dim=0.1)
+    map.visualize_map()
 
-        """
-        Pseudocode:
-        Create Obstacles from obstacle list
-        Create map
-        Run A* between start and hover location, set z pos to hover height, add to sequence
-        Run A* between hover and drop location, set z pos to hover height (add landing), add to sequence
-        Run sequence
-        """
+    # cflib.crtp.init_drivers()
 
-        reset_estimator(scf)
-        # start_position_printing(scf)
-        run_sequence(scf, sequence, 0.5)
+    # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+
+    #     """
+    #     Pseudocode:
+    #     Create Obstacles from obstacle list
+    #     Create map
+    #     Run A* between start and hover location, set z pos to hover height, add to sequence
+    #     Run A* between hover and drop location, set z pos to hover height (add landing), add to sequence
+    #     Run sequence
+    #     """
+
+    #     obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
+    #     map = Map(origin=map_origin, dim_x=map_dim_x, dim_y=map_dim_y, obstacles=obstacle_list, drone_dim=0.1)
+    #     map.visualize_map()
+
+    #     reset_estimator(scf)
+    #     # start_position_printing(scf)
+    #     run_sequence(scf, sequence, 0.5)
