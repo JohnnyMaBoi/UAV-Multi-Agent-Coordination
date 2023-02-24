@@ -41,7 +41,7 @@ class Map:
             bottom = int((o.bottom + self.origin[1])/self.drone_dim)
             left = int((o.left + self.origin[0])/self.drone_dim)
             right = int((o.right + self.origin[0])/self.drone_dim)
-            print(f"{top=}, {bottom=}, {left=}, {right=}")
+            # print(f"{top=}, {bottom=}, {left=}, {right=}")
             for y in range(bottom, top+1):
                 for x in range(left, right+1):
                     self.array[y][x].set_obstacle(True)
@@ -61,7 +61,7 @@ class Map:
         plt.show()
     
     def a_star(self, start, end):
-        pass
+        return [(0.0, 0.0, 0.0, 0.0)]
 
 class Node:
     """

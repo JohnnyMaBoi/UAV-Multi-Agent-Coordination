@@ -71,13 +71,28 @@ def start_position_printing(scf):
     log_conf.data_received_cb.add_callback(position_callback)
     log_conf.start()
 
+def get_pose(scf):
+    log_pos = LogConfig(name='Position', period_in_ms=200)
+    log_pos.add_variable('kalman.stateX', 'float')
+    log_pos.add_variable('kalman.stateY', 'float')
+    log_pos.add_variable('kalman.stateZ', 'float')
+    log_pos.data_received_cb.add_callback(position_callback)
+    scf.cf.log.add_config(log_pos)
+
+    with SyncLogger(scf, log_pos) as logger:
+            for log_entry in logger:
+                data = log_entry[1]
+                x = data['kalman.stateX']
+                y = data['kalman.stateY']
+                z = data['kalman.stateZ']
+                return x, y, z    
 
 def run_sequence(scf, sequence, delta_t):
     cf = scf.cf
 
     for position in sequence:
         print('Setting position {}'.format(position))
-        for i in range(delta_t * 10):
+        for i in range(int(delta_t * 10)):
             cf.commander.send_position_setpoint(position[0],
                                                 position[1],
                                                 position[2],
