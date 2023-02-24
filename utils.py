@@ -32,6 +32,11 @@ class Map:
 
         self.array = [[Node(coords=(x,y)) for x in range(int(dim_x / drone_dim))] for y in range(int(dim_y / drone_dim))]
 
+        # Fill nodes that are obstacles here
+    
+    def a_star(self, start, end):
+        pass
+
 class Node:
     """
     Object representing a node in the map, which is a unit square the
