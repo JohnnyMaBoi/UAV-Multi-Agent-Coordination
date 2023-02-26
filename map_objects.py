@@ -124,9 +124,11 @@ class Node:
     
     def set_heuristic(self, val):
         self._heuristic = val
+        self._f_cost= self._cost + self._heuristic
 
     def set_cost(self, val):
         self._cost = val
+        self._f_cost= self._cost + self._heuristic
     
     def set_parent(self, val):
         self.parent = val
