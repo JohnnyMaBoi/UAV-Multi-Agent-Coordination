@@ -59,6 +59,13 @@ class Map:
         neighbors_filtered = [n for n in neighbors if n is not None and not n.is_obstacle]
         return neighbors_filtered
 
+    def sequence_to_path(self, seq):
+        path = []
+        for s in seq:
+            path.append(((s[0]*self.drone_dim) + .5*self.drone_dim - self.origin[0], 
+                         (s[1]*self.drone_dim) + .5*self.drone_dim - self.origin[1],))
+        return path
+
     def visualize_map(self, path=None):
         obstacles_x =  []
         obstacles_y = []
@@ -77,7 +84,7 @@ class Map:
       
         ax.set_xlim([0, len(self.array[0])])
         ax.set_ylim([0, len(self.array)])
-        fig.show()
+        plt.show()
 
 class Node:
     """
@@ -141,3 +148,9 @@ class Node:
 
     def __sort__(self, other_node):
         return (self.f_cost < other_node.f_cost)
+    
+    def __repr__(self):
+        return f"F_cost: {self.f_cost}"
+    
+    def __eq__(self, n):
+        return self.coords == n.coords

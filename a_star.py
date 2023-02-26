@@ -71,13 +71,13 @@ class Astar:
                 path = [node_to_check]
                 node = node_to_check.parent
                 while True:
-                    path.append(node)
-                    if node.parent is None:
+                    path.insert(0, node)
+                    if node == self.pos_to_node(self.start):
                         break
                     node = node.parent
                 trajectory = []
                 for traj_node in path:
-                   trajectory.append(node.coords)
+                   trajectory.append(traj_node.coords)
                 return trajectory
             
             new_nodes = self.map.get_neighbors(node_to_check)

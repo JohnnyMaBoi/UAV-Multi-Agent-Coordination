@@ -1,6 +1,5 @@
-import time
-
 import cflib.crtp
+import matplotlib.pyplot as plt
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
@@ -10,11 +9,11 @@ from fly_sequence import (
     start_position_printing,
     get_pose,
 )
-from map_objects import Obstacle, Map, Node
+from map_objects import Obstacle, Map
 from a_star import Astar
 
 # URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default="radio://0/90/2M/E7E7E7E7E7")
+uri = uri_helper.uri_from_env(default="radio://0/50/2M/E7E7E7E7E7")
 
 sequence = []
 
@@ -60,77 +59,72 @@ if __name__ == "__main__":
 
     cflib.crtp.init_drivers()
 
-    obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
-    map = Map(
-        origin=map_origin,
-        dim_x=map_dim_x,
-        dim_y=map_dim_y,
-        obstacles=obstacle_list,
-        drone_dim=0.1,
-    )
-    # map.visualize_map()
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
-    # Select start, hover, & end points
-    start = start_locations["1"]
-    hover_point = hover_locations["Bin 2a"]
-    end = drop_locations["B"]
+        """
+        Pseudocode:
+        Add takeoff to sequence
+        Run A* between start and hover location, set z pos to hover height, add to sequence
+        Run A* between hover and drop location, set z pos to hover height (add landing), add to sequence
+        Add landing to sequence
+        Run sequence
+        """
 
-    astar_to_hover = Astar(map=map, start=start, target=hover_point)
-    seq_to_hover = astar_to_hover.a_star_search()
-    print(seq_to_hover)
-    # visualize a* sequence:
-    map.visualize_map(path=seq_to_hover)
+        obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
+        map = Map(origin=map_origin, dim_x=map_dim_x, dim_y=map_dim_y, obstacles=obstacle_list, drone_dim=0.1)
+        # map.visualize_map()
 
-    # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        # Select start, hover, & end points
+        start = start_locations["2"]
+        start = (start[0]+map_origin[0], start[1]+map_origin[1])
+        hover_point = hover_locations["Bin 1a"]
+        hover_point = (hover_point[0]+map_origin[0], hover_point[1]+map_origin[1])
+        end = drop_locations["B"]
+        end = (end[0]+map_origin[0], end[1]+map_origin[1])
 
-    #     """
-    #     Pseudocode:
-    #     Add takeoff to sequence
-    #     Run A* between start and hover location, set z pos to hover height, add to sequence
-    #     Run A* between hover and drop location, set z pos to hover height (add landing), add to sequence
-    #     Add landing to sequence
-    #     Run sequence
-    #     """
+        # Add takeoff to sequence
+        x, y, z = get_pose(scf)
+        sequence.append((x, y, hover_height/2, 0.0))
+        sequence.append((start[0] - map_origin[0], start[1] - map_origin[1], hover_height/2, 0.0))
+        sequence.append((start[0] - map_origin[0], start[1] - map_origin[1], hover_height, 0.0))
 
-    #     obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
-    #     map = Map(origin=map_origin, dim_x=map_dim_x, dim_y=map_dim_y, obstacles=obstacle_list, drone_dim=0.1)
-    #     # map.visualize_map()
+        astar_to_hover = Astar(map=map, start=start, target=hover_point)
+        seq_to_hover = astar_to_hover.a_star_search()
+        print("Generated hover sequence")
 
-    #     # Select start, hover, & end points
-    #     start = start_locations['1']
-    #     hover_point = hover_locations['Bin 2a']
-    #     end = drop_locations['B']
+        # Add first flight sequence
+        path_to_hover = map.sequence_to_path(seq=seq_to_hover)
+        for i, p in enumerate(path_to_hover):
+            path_to_hover[i] = (p[0], p[1], hover_height, 0.0)
 
-    #     # Add takeoff to sequence
-    #     x, y, z = get_pose(scf)
-    #     sequence.append((x, y, hover_height/2, 0.0))
-    #     sequence.append((start[0], start[1], hover_height/2, 0.0))
-    #     sequence.append((start[0], start[1], hover_height, 0.0))
+        sequence.extend(path_to_hover)
 
-    #     astar_to_hover = Astar(map=map, start=start, target=hover_point)
-    #     # visualize a* sequence:
-    #     map.visualize_map(path=astar_to_hover.a_star_search())
+        astar_to_drop = Astar(map=map, start=hover_point, target=end)
+        seq_to_drop = astar_to_drop.a_star_search()
+        print("Generated drop sequence")
 
-    #     # Add first flight sequence
-    #     seq_to_hover = astar_to_hover.a_star_search()
-    #     for i in range(len(seq_to_hover)):
-    #         seq_to_hover[i][2] = hover_height
+        sequence.extend([(hover_point[0] - map_origin[0], hover_point[1] - map_origin[1], hover_height, 0.0)]*20)
 
-    #     sequence.extend(seq_to_hover)
+        # Add second flight sequence
+        path_to_drop = map.sequence_to_path(seq=seq_to_drop)
+        for i, p in enumerate(path_to_drop):
+            path_to_drop[i] = (p[0], p[1], hover_height, 0.0)
 
-    #     astar_to_drop = Astar(map=map, start=hover_point, target=end)
-    #     # Add second flight sequence
-    #     seq_to_drop = astar_to_drop.a_star_search()
-    #     for i in range(len(seq_to_drop)):
-    #         seq_to_drop[i][2] = hover_height
+        sequence.extend(path_to_drop)
 
-    #     sequence.extend(seq_to_drop)
+        # Add landing to flight sequence
+        sequence.append((end[0] - map_origin[0], end[1] - map_origin[1], hover_height, 0.0))
+        sequence.append((end[0] - map_origin[0], end[1] - map_origin[1], hover_height/2, 0.0))
+        sequence.append((end[0] - map_origin[0], end[1] - map_origin[1], 0.0, 0.0))
 
-    #     # Add landing to flight sequence
-    #     sequence.append((end[0], end[1], hover_height, 0.0))
-    #     sequence.append((end[0], end[1], hover_height/2, 0.0))
-    #     sequence.append((end[0], end[1], 0.0, 0.0))
+        print(sequence)
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        ax.scatter3D([s[0] for s in sequence], [s[1] for s in sequence], [s[2] for s in sequence])
+        ax.set_xlim([-1, 2.5])
+        ax.set_ylim([-1, 1])
+        plt.show()
 
-    #     # reset_estimator(scf)
-    #     # # start_position_printing(scf)
-    #     # run_sequence(scf, sequence, 0.5)
+        reset_estimator(scf)
+        # start_position_printing(scf)
+        run_sequence(scf, sequence, 0.5)
