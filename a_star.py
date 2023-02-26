@@ -21,10 +21,10 @@ class Astar:
         Returns:
             Score (Double):The heuristic value of the node
         """
-        _current_pos=child.coords()
+        _current_pos=child.coords
         _target_pos=self.target
         _dist_to_target=((_current_pos[0]-_target_pos[0])**2+(_current_pos[1]-_target_pos[1])**2)**0.5
-        score=_dist_to_target+parent.heuristic()+self.map.drone_dim
+        score=_dist_to_target+parent.heuristic+self.map.drone_dim
 
         return score
 
@@ -37,8 +37,8 @@ class Astar:
         Returns:
             closest_node (Node):The node closest to the position
         """
-        node_x = pos[0]//self.map.drone_dim
-        node_y = pos[1]//self.map.drone_dim
+        node_x = int(pos[0]//self.map.drone_dim)
+        node_y = int(pos[1]//self.map.drone_dim)
         closest_node = self.map.array[node_y][node_x]
         return closest_node
 
@@ -61,7 +61,7 @@ class Astar:
                 break
             
             #Find the next node to check
-            self.nodes_found.sort()
+            self.nodes_found = sorted(self.nodes_found, key=lambda n: n.f_cost)
             node_to_check = self.nodes_found.pop(0)
 
             self.nodes_checked.append(node_to_check)
@@ -72,17 +72,17 @@ class Astar:
                 node = node_to_check.parent
                 while True:
                     path.append(node)
-                    if node.parent in None:
+                    if node.parent is None:
                         break
                     node = node.parent
                 trajectory = []
                 for traj_node in path:
                    trajectory.append(node.coords)
-                return path
+                return trajectory
             
             new_nodes = self.map.get_neighbors(node_to_check)
             for node in new_nodes:
-                node.set_heuristic(self.calculate_score(node_to_check,node,self.target,self.map))
+                node.set_heuristic(self.calculate_score(node_to_check,node,self.target))
                 if node not in self.nodes_found and node not in self.nodes_checked:
                     node.parent=node_to_check
                     self.nodes_found.append(node)

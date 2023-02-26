@@ -55,8 +55,8 @@ class Map:
         bottom = None if y_pos-1 < 0 else self.array[y_pos-1][x_pos]
         left = None if x_pos-1 < 0 else self.array[y_pos][x_pos-1]
         right = None if x_pos+1 >= array_x else self.array[y_pos][x_pos+1]
-        neighbors = [top, bottom, left, right].remove(None)
-        neighbors_filtered = [n for n in neighbors if not n.is_obstacle]
+        neighbors = [top, bottom, left, right]
+        neighbors_filtered = [n for n in neighbors if n is not None and not n.is_obstacle]
         return neighbors_filtered
 
     def visualize_map(self, path=None):
@@ -67,11 +67,17 @@ class Map:
                 if self.array[y][x].is_obstacle:
                     obstacles_x.append(x)
                     obstacles_y.append(y)
+    
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
 
-        plt.scatter(obstacles_x, obstacles_y)
-        plt.xlim([0, len(self.array[0])])
-        plt.ylim([0, len(self.array)])
-        plt.show()
+        ax.scatter(obstacles_x, obstacles_y)
+        if path is not None:
+            ax.scatter([p[0] for p in path], [p[1] for p in path]) 
+      
+        ax.set_xlim([0, len(self.array[0])])
+        ax.set_ylim([0, len(self.array)])
+        fig.show()
 
 class Node:
     """
