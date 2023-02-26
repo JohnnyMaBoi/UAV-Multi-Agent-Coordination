@@ -80,12 +80,18 @@ class Astar:
                    trajectory.append(node.coords)
                 return path
             
-            new_nodes = find_nodes(node_to_check)
+            new_nodes = node_to_check.neighbors
             for node in new_nodes:
-                node.heuristic=calculate_score(node_to_check,node,target,map)
-                if node not in nodes_found and node not in nodes_checked:
+                node.set_heuristic(self.calculate_score(node_to_check,node,self.target,self.map))
+                if node not in self.nodes_found and node not in self.nodes_checked:
                     node.parent=node_to_check
-                    nodes_found.append(node)
-                elif node in nodes_found and node.parent != node_to_check:
-                    for node in self.opened:
-                        if node.value == node_value:
+                    self.nodes_found.append(node)
+                elif node in self.nodes_found and node.parent != node_to_check:
+                    old_score = node.heuristic
+                    old_parent = node.parent
+                    node.set_parent(node_to_check)
+                    new_score = node.heuristic
+                    if old_score < new_score:
+                        node.set_parent(old_parent)
+                    else:
+                        self.nodes_found.append(node)
