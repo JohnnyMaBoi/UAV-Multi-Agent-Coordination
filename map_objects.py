@@ -46,7 +46,20 @@ class Map:
                 for x in range(left, right+1):
                     self.array[y][x].set_obstacle(True)
 
-    def visualize_map(self):
+    def get_neighbors(self, node):
+        x_pos = node.coords[0]
+        y_pos = node.coords[1]
+        array_y = len(self.array)
+        array_x = len(self.array[0])
+        top = None if y_pos+1 >= array_y else self.array[y_pos+1][x_pos]
+        bottom = None if y_pos-1 < 0 else self.array[y_pos-1][x_pos]
+        left = None if x_pos-1 < 0 else self.array[y_pos][x_pos-1]
+        right = None if x_pos+1 >= array_x else self.array[y_pos][x_pos+1]
+        neighbors = [top, bottom, left, right].remove(None)
+        neighbors_filtered = [n for n in neighbors if not n.is_obstacle]
+        return neighbors_filtered
+
+    def visualize_map(self, path=None):
         obstacles_x =  []
         obstacles_y = []
         for y in range(len(self.array)):
@@ -59,9 +72,6 @@ class Map:
         plt.xlim([0, len(self.array[0])])
         plt.ylim([0, len(self.array)])
         plt.show()
-    
-    def a_star(self, start, end):
-        return [(0.0, 0.0, 0.0, 0.0)]
 
 class Node:
     """

@@ -5,7 +5,8 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from fly_sequence import reset_estimator, run_sequence, start_position_printing, get_pose
-from utils import Obstacle, Map, Node
+from map_objects import Obstacle, Map, Node
+from a_star import Astar
 
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/90/2M/E7E7E7E7E7')
@@ -83,15 +84,17 @@ if __name__ == '__main__':
         sequence.append((start[0], start[1], hover_height/2, 0.0))
         sequence.append((start[0], start[1], hover_height, 0.0))
 
+        astar_to_hover = Astar(map=map, start=start, target=hover_point)
         # Add first flight sequence
-        seq_to_hover = map.a_star(start, hover_point)
+        seq_to_hover = astar_to_hover.a_star_search()
         for i in range(len(seq_to_hover)):
             seq_to_hover[i][2] = hover_height
 
         sequence.extend(seq_to_hover)
 
+        astar_to_drop = Astar(map=map, start=hover_point, target=end)
         # Add second flight sequence
-        seq_to_drop = map.a_star(hover_point, end)
+        seq_to_drop = astar_to_drop.a_star_search()
         for i in range(len(seq_to_drop)):
             seq_to_drop[i][2] = hover_height
         

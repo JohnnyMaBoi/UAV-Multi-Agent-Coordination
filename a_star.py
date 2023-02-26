@@ -28,7 +28,7 @@ class Astar:
 
         return score
 
-    def pos_to_node(self,pos,map):
+    def pos_to_node(self, pos):
         """
         Finds the closest node to the given position
         Args:
@@ -37,9 +37,9 @@ class Astar:
         Returns:
             closest_node (Node):The node closest to the position
         """
-        node_x = pos[0]//map.drone_dim
-        node_y = pos[1]//map.drone_dim
-        closest_node = map.array[node_x][node_y]
+        node_x = pos[0]//self.map.drone_dim
+        node_y = pos[1]//self.map.drone_dim
+        closest_node = self.map.array[node_y][node_x]
         return closest_node
 
     def a_star_search(self):
@@ -80,7 +80,7 @@ class Astar:
                    trajectory.append(node.coords)
                 return path
             
-            new_nodes = node_to_check.neighbors
+            new_nodes = self.map.get_neighbors(node_to_check)
             for node in new_nodes:
                 node.set_heuristic(self.calculate_score(node_to_check,node,self.target,self.map))
                 if node not in self.nodes_found and node not in self.nodes_checked:
