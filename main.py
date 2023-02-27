@@ -125,6 +125,6 @@ if __name__ == "__main__":
         ax.set_ylim([-1, 1])
         plt.show()
 
-        reset_estimator(scf)
-        # start_position_printing(scf)
-        run_sequence(scf, sequence, 0.5)
+        # reset_estimator(scf)
+        # # start_position_printing(scf)
+        # run_sequence(scf, sequence, 0.5)
