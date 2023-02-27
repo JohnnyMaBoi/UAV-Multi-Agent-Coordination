@@ -66,7 +66,7 @@ class Map:
                          (s[1]*self.drone_dim) + .5*self.drone_dim - self.origin[1],))
         return path
 
-    def visualize_map(self, path=None):
+    def visualize_map(self, path=None, waypoint_names=None):
         obstacles_x =  []
         obstacles_y = []
         for y in range(len(self.array)):
@@ -84,6 +84,12 @@ class Map:
       
         ax.set_xlim([0, len(self.array[0])])
         ax.set_ylim([0, len(self.array)])
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        title = "Planned Crazyflie Path"
+        if waypoint_names is not None:
+            title += f"\nTakeoff Loc {waypoint_names[0]}, Hover @ {waypoint_names[1]}, Drop Loc {waypoint_names[2]}"
+        ax.set_title(title)
         plt.show()
 
 class Node:
