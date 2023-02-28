@@ -1,19 +1,20 @@
+import os
 import cflib.crtp
 import matplotlib.pyplot as plt
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from fly_sequence import (
     reset_estimator,
     run_sequence,
-    start_position_printing,
-    get_pose,
+    get_pose
 )
 from map_objects import Obstacle, Map
 from a_star import Astar
 
 # URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default="radio://0/50/2M/E7E7E7E7E7")
+uri = uri_helper.uri_from_env(default="radio://0/60/2M/E7E7E7E7E7")
 
 sequence = []
 
@@ -51,15 +52,36 @@ map_origin = (1, 1)
 map_dim_x = 3.5
 map_dim_y = 2
 
+path_log = open(os.path.join(os.path.realpath(os.path.dirname(__file__)), "drone_path_log.csv"), "w+")
+path_log.write("x,y,z\n")
+path_log.flush()
+a_star_log = open(os.path.join(os.path.realpath(os.path.dirname(__file__)), "a_star_path_log.csv"), "w+")
+a_star_log.write("x,y,z\n")
+a_star_log.flush()
+
+def start_position_printing(scf, file=None):
+    log_conf = LogConfig(name='Position', period_in_ms=500)
+    log_conf.add_variable('kalman.stateX', 'float')
+    log_conf.add_variable('kalman.stateY', 'float')
+    log_conf.add_variable('kalman.stateZ', 'float')
+
+    scf.cf.log.add_config(log_conf)
+    log_conf.data_received_cb.add_callback(position_callback)
+    log_conf.start()
+
+def position_callback(timestamp, data, logconf):
+    x = data['kalman.stateX']
+    y = data['kalman.stateY']
+    z = data['kalman.stateZ']
+    print('pos: ({}, {}, {})'.format(x, y, z))
+    path_log.write(f"{x},{y},{z}\n")
+    path_log.flush()
+
 if __name__ == "__main__":
 
-    # obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
-    # map = Map(origin=map_origin, dim_x=map_dim_x, dim_y=map_dim_y, obstacles=obstacle_list, drone_dim=0.1)
-    # map.visualize_map()
+   cflib.crtp.init_drivers()
 
-#    cflib.crtp.init_drivers()
-
-#    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+   with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
         """
         Pseudocode:
@@ -87,8 +109,8 @@ if __name__ == "__main__":
         end_map_frame = (end[0]+map_origin[0], end[1]+map_origin[1])
 
         # Add takeoff to sequence
-        x, y, z = start[0], start[1], 0.0
-        #x, y, z = get_pose(scf)
+        #x, y, z = start[0], start[1], 0.0
+        x, y, z = get_pose(scf)
         sequence.append((x, y, hover_height/2, 0.0))
         sequence.append((start[0], start[1], hover_height/2, 0.0))
         sequence.append((start[0], start[1], hover_height, 0.0))
@@ -127,6 +149,10 @@ if __name__ == "__main__":
         a_star_seq = seq_to_hover + seq_to_drop
         map.visualize_map(path=a_star_seq, waypoint_names=[starting_point, hover_bin, drop_location])
 
+        for s in sequence:
+            a_star_log.write(f"{s[0]},{s[1]},{s[2]}\n")
+            a_star_log.flush()
+
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         ax.scatter3D([s[0] for s in sequence], [s[1] for s in sequence], [s[2] for s in sequence])
@@ -139,6 +165,6 @@ if __name__ == "__main__":
         ax.set_title(f'Planned Crazyflie Path\nTakeoff Loc {starting_point}, Hover @ {hover_bin}, Drop Loc {drop_location}')
         plt.show()
 
-        # reset_estimator(scf)
-        # # start_position_printing(scf)
-        # run_sequence(scf, sequence, 0.5)
+        reset_estimator(scf)
+        start_position_printing(scf)
+        run_sequence(scf, sequence, 0.5)
