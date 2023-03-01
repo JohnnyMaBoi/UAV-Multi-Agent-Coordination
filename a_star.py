@@ -1,9 +1,19 @@
-"""
-Functions
-calculate_score (Parent,Child,Target)
-pos_to_node
-"""
 class Astar:
+    """
+    This class implements the A* algorithm to find paths on a given map
+
+    Attributes:
+        map (Map) : the environment for A*
+        start (Tuple) : the starting coordinates of the drone
+        target (Tuple) : the desired end coordinates of the drone
+        nodes_found (List) : A list of nodes discovered by A*
+        nodes_checked (List) : A list of nodes explored by A*
+    Methods:
+        __init__ (map, start, target): initializes the Astar class
+        calculate_score(parent,child,target) : Calculates the heuristic value of a node
+        pos_to_node(pos) : Finds the closest node to the given position
+        a_star_search : implements the A* algorithm
+    """
     def __init__(self, map, start, target):
         self.map = map
         self.start = start
@@ -44,18 +54,18 @@ class Astar:
 
     def a_star_search(self):
         """
-        Calculates the heuristic value of a node
+        Implements the A* algorithm
         Args:
-            map(map):the map with the expected obstacles
-            start(tuple):The drone start position
-            target(tuple): The tuple containing the x and y position of the target
+            None
         Returns:
-            path (List):The list of tuples defining the drone path
+            trajectory (List):The list of tuples defining the drone path
         """
 
+        #Starts A* with the drone starting position
         self.nodes_found.append(self.pos_to_node(self.start))
 
         while True:
+            #If there are no nodes left to search, end the function
             if len(self.nodes_found) == 0:
                 print("Tough luck, we couldn't find a solution")
                 break
@@ -63,11 +73,11 @@ class Astar:
             #Find the next node to check
             self.nodes_found = sorted(self.nodes_found, key=lambda n: n.f_cost)
             node_to_check = self.nodes_found.pop(0)
-
             self.nodes_checked.append(node_to_check)
 
             #Yay, we found the target! Time to find the path.
             if node_to_check == self.pos_to_node(self.target):
+                #Creates a node path for the drone to follow
                 path = [node_to_check]
                 node = node_to_check.parent
                 while True:
@@ -75,17 +85,22 @@ class Astar:
                     if node == self.pos_to_node(self.start):
                         break
                     node = node.parent
+                #Convert the path in nodes to the path in coordinates
                 trajectory = []
                 for traj_node in path:
                    trajectory.append(traj_node.coords)
                 return trajectory
             
+            #Checks nodes around the node being explored
             new_nodes = self.map.get_neighbors(node_to_check)
             for node in new_nodes:
+                #Score each node
                 node.set_heuristic(self.calculate_score(node_to_check,node,self.target))
+                #Add the node if it hasn't been seen before
                 if node not in self.nodes_found and node not in self.nodes_checked:
                     node.parent=node_to_check
                     self.nodes_found.append(node)
+                #If the node has been checked before but has a different parent, use the parent with a lower score
                 elif node in self.nodes_found and node.parent != node_to_check:
                     old_score = node.heuristic
                     old_parent = node.parent
