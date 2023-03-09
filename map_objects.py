@@ -78,6 +78,7 @@ class Map:
 
     def sequence_to_path(self, seq):
         path = []
+        # seq is a list of tuples indicating drone position in "coords" frame, not true origin relative to lighthouse frame
         for s in seq:
             path.append(
                 (

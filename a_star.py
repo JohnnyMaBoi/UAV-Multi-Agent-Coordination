@@ -31,6 +31,7 @@ class Astar:
         Returns:
             Score (Double):The heuristic value of the node
         """
+        # multi-agent note: implement score adjustment for idx in node.intersections
         _current_pos=child.coords
         _target_pos=self.target
         _dist_to_target=((_current_pos[0]-_target_pos[0])**2+(_current_pos[1]-_target_pos[1])**2)**0.5
@@ -40,7 +41,7 @@ class Astar:
 
     def pos_to_node(self, pos):
         """
-        Finds the closest node to the given position
+        Finds the closest node to the given position (localization)
         Args:
             pos(tuple): The tuple containing an x and y position in the map frame
             map(Map): the map of nodes for the position coords
@@ -61,6 +62,7 @@ class Astar:
             trajectory (List):The list of tuples defining the drone path
         """
 
+        # creating a property that tells you where path has been
         #Starts A* with the drone starting position
         self.nodes_found.append(self.pos_to_node(self.start))
 
@@ -70,18 +72,20 @@ class Astar:
                 print("Tough luck, we couldn't find a solution")
                 break
             
-            #Find the next node to check
+            #Find the next node to check (it has the lowest f_cost)
             self.nodes_found = sorted(self.nodes_found, key=lambda n: n.f_cost)
             node_to_check = self.nodes_found.pop(0)
             self.nodes_checked.append(node_to_check)
 
-            #Yay, we found the target! Time to find the path.
+            #TARGET NODE FOUND! after check, enter into path assembly.
             if node_to_check == self.pos_to_node(self.target):
-                #Creates a node path for the drone to follow
+                #Creates a node path for the drone to follow, starting at ending point
                 path = [node_to_check]
                 node = node_to_check.parent
                 while True:
+                    # inserting the parent node before 1st node in list to form the path backwards
                     path.insert(0, node)
+                    # once you reach the starting node, you're done making the path! 
                     if node == self.pos_to_node(self.start):
                         break
                     node = node.parent
