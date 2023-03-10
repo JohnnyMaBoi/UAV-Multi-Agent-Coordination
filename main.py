@@ -9,10 +9,11 @@ from fly_sequence import reset_estimator, run_sequence, get_pose
 from map_objects import Obstacle, Map
 from a_star import Astar
 
-# URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default="radio://0/60/2M/E7E7E7E7E7")
+# URI to the Crazyflie to connect to COMMENTED 3/9/23
+# uri = uri_helper.uri_from_env(default="radio://0/60/2M/E7E7E7E7E7")
 
 # initializing the points that will be commanded
+
 sequence = []
 
 obstacles = [
@@ -21,24 +22,17 @@ obstacles = [
 ]
 
 drop_locations = {
-    "A": (-0.6, -0.6),
-    "B": (-0.6, -0.3),
-    "C": (-0.6, 0),
-    "D": (-0.6, 0.3),
-    "E": (-0.6, 0.6),
+    "A": (1.8, .6),
+    "B": (1.8, -0.3)
 }
 
-start_locations = {"1": (1.8, -0.3), "2": (1.8, 0.6)}
+start_locations = {"1": (-.6, 0.9), "2": (-.6, .3), "3":(-.6, -.3)}
 
-hover_locations = {
-    "Bin 1a": (0.15, 0.25),
-    "Bin 2a": (0.455, 0.25),
-    "Bin 3a": (0.76, 0.25),
-    "Bin 4a": (1.065, 0.25),
-    "Bin 1b": (0.15, -0.25),
-    "Bin 2b": (0.455, -0.25),
-    "Bin 3b": (0.76, -0.25),
-    "Bin 4b": (1.065, -0.25),
+pick_loc = {
+    "P1": (.4, .7),
+    "P2": (.3, -.2),
+    "P3": (1.0, .2),
+    "P4": (.2, -.7),
 }
 
 hover_height = 0.45
@@ -62,7 +56,7 @@ a_star_log = open(
 a_star_log.write("x,y,z\n")
 a_star_log.flush()
 
-
+# this may cause problems because now the file is just a path generator
 def start_position_printing(scf, file=None):
     log_conf = LogConfig(name="Position", period_in_ms=500)
     log_conf.add_variable("kalman.stateX", "float")
@@ -83,11 +77,20 @@ def position_callback(timestamp, data, logconf):
     path_log.flush()
 
 
-if __name__ == "__main__":
+def framed_pos(position, origin):
+    """function to create the framed pos values taken by A*"""
+    origin = map_origin
+    framed_position = (
+        position[0]+origin[0],
+        position[1]+origin[1]
+    )
+    return framed_position
 
-    cflib.crtp.init_drivers()
+# if __name__ == "__main__":
+# COMMENTED 3/9/23 above/below commenting out code to run crazyflie
+    # cflib.crtp.init_drivers()
 
-    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
+    # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
 
         """
         Pseudocode:
@@ -97,6 +100,22 @@ if __name__ == "__main__":
         Add landing to sequence
         Run sequence
         """
+def create_multi_capable_path(droneID, processed_map=None, preprocessed_tasks)
+    """
+    run A* alg for a drone that will output a new map with drone intersections and a commandable path
+
+    args: 
+        droneID (str): name that you are calling the drone in your code for consistency. Used 
+            mostly in the node drone intersection tuple
+        map (map class): map that A* is run in, has all attributes of map class
+        preprocessed_tasks (list): list of the tasks expected of this drone, in order.
+            note: this should BEGIN with the starting location of the drone, i.e. 1 
+
+    returns: 
+        map (map class): same map as original with new updated intersections. Will be passed in to the next
+            time this func runs as the processed_map variable
+        sequence (list?): list of points commanded to the drone in (x,y,z) tuples. Advances with timesteps
+    """
 
         starting_point = "2"
         hover_bin = "Bin 1a"
@@ -109,30 +128,61 @@ if __name__ == "__main__":
             dim_y=map_dim_y,
             obstacles=obstacle_list,
             drone_dim=0.1,
+            prev_map = processed_map,
         )
         # map.visualize_map()
 
+        # creating list to store the meters lighthouse-frame coords of each task in task list
+        task_loc = []
+        for strings in preprocesed_tasks:
+            if (string in list(start_locations.keys())):
+            task_loc.extend(start_locations[string])
+            if (string in list(pick_loc.keys())):
+                task_loc.extend(pick_loc[string])
+            if (string in list(drop_locations.keys())):
+                task_loc.extend(drop_locations[string])
+            else:
+                print("invalid coordinate name entered! Check top of main.")
+            
+    # COMMENTED 3/9/23 moving towards func format, no more start and end
         # Select start, hover, & end points
-        start = start_locations[starting_point]
+        start = start_locations[preprocesed_tasks[0]]
         start_map_frame = (start[0] + map_origin[0], start[1] + map_origin[1])
-        hover_point = hover_locations[hover_bin]
+        hover_point = pick_loc[hover_bin]
         hover_point_map_frame = (
             hover_point[0] + map_origin[0],
             hover_point[1] + map_origin[1],
         )
-        end = drop_locations[drop_location]
+        end = drop_locations[preprocessed_tasks[-1]]
         end_map_frame = (end[0] + map_origin[0], end[1] + map_origin[1])
 
         # Add takeoff to sequence
         # x, y, z = start[0], start[1], 0.0
-        x, y, z = get_pose(scf)
-        sequence.append((x, y, hover_height / 2, 0.0))
+
+        # COMMENTED 3/9/23 might cause problems, commenting any ref to crazyflie pose estimation for now.
+        # x, y, z = get_pose(scf)
+        # sequence.append((x, y, hover_height / 2, 0.0))
+
         sequence.append((start[0], start[1], hover_height / 2, 0.0))
         sequence.append((start[0], start[1], hover_height, 0.0))
 
-        astar_to_hover = Astar(
-            map=map, start=start_map_frame, target=hover_point_map_frame
-        )
+        # performing a* on all points that are not the first point in the task list bc its the start
+        # needs to initialize and then populate astar with functions Astar and Astar.a_star_search
+        seq_to_hover = []
+        for idx, locations in enumerate(preprocessed_tasks[1:]):
+            if idx < len(preprocessed_tasks[1:])-1
+                
+                next_goal_astar = Astar(
+                        map=map, start=framed_pos(locations, map_origin), 
+                        target=framed_pos(preprocessed_tasks[idx+1], map_origin)
+                        # map=map, start=start_map_frame, target=hover_point_map_frame
+                    )
+                    # !!! Kind of unsure about this datatype!
+                sequence_to_hover.extend(next_goal_astar.a_star_search())
+                
+
+                
+
         seq_to_hover = astar_to_hover.a_star_search()
         print("Generated hover sequence")
 
@@ -144,11 +194,11 @@ if __name__ == "__main__":
         sequence.extend(path_to_hover)
 
         # initializing the A* object to be searched
-        astar_to_drop = Astar(
-            map=map, start=hover_point_map_frame, target=end_map_frame
-        )
-        seq_to_drop = astar_to_drop.a_star_search()
-        print("Generated drop sequence")
+        # astar_to_drop = Astar(
+        #     map=map, start=hover_point_map_frame, target=end_map_frame
+        # )
+        # seq_to_drop = astar_to_drop.a_star_search()
+        # print("Generated drop sequence")
 
         sequence.extend([(hover_point[0], hover_point[1], hover_height, 0.0)] * 20)
 
@@ -191,6 +241,8 @@ if __name__ == "__main__":
         )
         plt.show()
 
-        reset_estimator(scf)
-        start_position_printing(scf)
-        run_sequence(scf, sequence, 0.5)
+
+# COMMENTED 3/9/23 commenting out code to run crazyflie
+        # reset_estimator(scf)
+        # start_position_printing(scf)
+        # run_sequence(scf, sequence, 0.5)

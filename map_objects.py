@@ -18,12 +18,14 @@ class Obstacle:
 class Map:
     # here we give our start and end, and this class will calculate
     #  obstacles is a list of obstacle objects
-    def __init__(self, origin=(0, 0), dim_x=0, dim_y=0, obstacles=[], drone_dim=0.1):
+    # prev_map is a way that map can take previous map objects and incorporate the intersections into a new map
+    def __init__(self, origin=(0, 0), dim_x=0, dim_y=0, obstacles=[], drone_dim=0.1, prev_map = None):
         self.origin = origin
         self.dim_x = dim_x
         self.dim_y = dim_y
         self.drone_dim = drone_dim
         self.obstacles = obstacles
+        self.prev_map = prev_map
 
         self.extents = [
             (0, self.dim_y),
@@ -40,6 +42,13 @@ class Map:
         ]
 
         self.create_obstacles(obstacles)
+
+        # if there is a previous map inputted, grab its drone intersections so that you can populate the new map with higher priority drones
+        if self.prev_map is not None:
+            for y in range(len(self.prev_map.array)):
+                for x in range(len(self.prev_map.array[0])):
+                    if self.prev_map.array[y][x].intersections is not None:
+                        self.array[y][x].set_intersection(self.prev_map.array[y][x].intersections)
 
     def create_obstacles(self, obstacles):
         for o in obstacles:
@@ -186,7 +195,7 @@ class Node:
         self.parent = val
 
     def set_intersection(self, intersection):
-        self.intersections.append(intersection)
+        self.intersections.extend(intersection)
         # when appending intersections they are in the format ("drone ID", time idx)
         # where time idx is an int representing the step of A* that this intersection is
 
