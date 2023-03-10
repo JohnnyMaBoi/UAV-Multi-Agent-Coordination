@@ -89,12 +89,13 @@ class Map:
         path = []
         # seq is a list of tuples indicating drone position in "coords" frame, not true origin relative to lighthouse frame
         for s in seq:
-            path.append(
-                (
-                    (s[0] * self.drone_dim) + 0.5 * self.drone_dim - self.origin[0],
-                    (s[1] * self.drone_dim) + 0.5 * self.drone_dim - self.origin[1],
+            if s is not None:
+                path.append(
+                    (
+                        (s[0] * self.drone_dim) + 0.5 * self.drone_dim - self.origin[0],
+                        (s[1] * self.drone_dim) + 0.5 * self.drone_dim - self.origin[1],
+                    )
                 )
-            )
         return path
 
     def visualize_map(self, path=None, waypoint_names=None):
@@ -146,9 +147,8 @@ class Node:
         self._cost = 0
         self._heuristic = 0
         self._f_cost = self.heuristic + self.cost
-        self.intersections = (
-            []
-        )  # empty list where drone intersections at time indeces will be recorded
+        self._intersections = []
+          # empty list where drone intersections at time indeces will be recorded
 
     @property
     def coords(self):
@@ -194,8 +194,8 @@ class Node:
     def set_parent(self, val):
         self.parent = val
 
-    def set_intersection(self, intersection):
-        self.intersections.extend(intersection)
+    def set_intersections(self, val):
+        self.intersections.extend(val)
         # when appending intersections they are in the format ("drone ID", time idx)
         # where time idx is an int representing the step of A* that this intersection is
 

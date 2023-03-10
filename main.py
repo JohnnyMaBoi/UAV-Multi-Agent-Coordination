@@ -14,19 +14,17 @@ from a_star import Astar
 
 # initializing the points that will be commanded
 
-sequence = []
-
 obstacles = [
     [(0, 0.3), (0, 0.605), (1.22, 0.605), (1.22, 0.3)],
     [(0, -0.3), (0, -0.605), (1.22, -0.605), (1.22, -0.3)],
 ]
 
-drop_locations = {
-    "A": (1.8, .6),
-    "B": (1.8, -0.3)
+drop_loc = {
+    "D1": (1.8, .6),
+    "D2": (1.8, -0.3)
 }
 
-start_locations = {"1": (-.6, 0.9), "2": (-.6, .3), "3":(-.6, -.3)}
+start_loc = {"S1": (-.6, 0.9), "S2": (-.6, .3), "S3":(-.6, -.3)}
 
 pick_loc = {
     "P1": (.4, .7),
@@ -77,12 +75,12 @@ def position_callback(timestamp, data, logconf):
     path_log.flush()
 
 
-def framed_pos(position, origin):
+def framed_pos(position):
     """function to create the framed pos values taken by A*"""
-    origin = map_origin
+    origin_tup = (1, 1)
     framed_position = (
-        position[0]+origin[0],
-        position[1]+origin[1]
+        position[0]+origin_tup[0],
+        position[1]+origin_tup[1]
     )
     return framed_position
 
@@ -92,15 +90,8 @@ def framed_pos(position, origin):
 
     # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
 
-        """
-        Pseudocode:
-        Add takeoff to sequence
-        Run A* between start and hover location, set z pos to hover height, add to sequence
-        Run A* between hover and drop location, set z pos to hover height (add landing), add to sequence
-        Add landing to sequence
-        Run sequence
-        """
-def create_multi_capable_path(droneID, processed_map=None, preprocessed_tasks)
+
+def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
     """
     run A* alg for a drone that will output a new map with drone intersections and a commandable path
 
@@ -116,45 +107,53 @@ def create_multi_capable_path(droneID, processed_map=None, preprocessed_tasks)
             time this func runs as the processed_map variable
         sequence (list?): list of points commanded to the drone in (x,y,z) tuples. Advances with timesteps
     """
+        
+    # Note: this script does NOT touch down or change altitude at all exc for very beginning and very end. 
+    #     Didn't have time to do anything other than basic pathing
 
-        starting_point = "2"
-        hover_bin = "Bin 1a"
-        drop_location = "B"
+        # initializing sequence that will be sent
+    sequence = []
 
-        obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
-        map = Map(
-            origin=map_origin,
-            dim_x=map_dim_x,
-            dim_y=map_dim_y,
-            obstacles=obstacle_list,
-            drone_dim=0.1,
-            prev_map = processed_map,
-        )
-        # map.visualize_map()
+    
+    # starting_point = "2"
+    # hover_bin = "Bin 1a"
+    # drop_loc = "B"
 
-        # creating list to store the meters lighthouse-frame coords of each task in task list
-        task_loc = []
-        for strings in preprocesed_tasks:
-            if (string in list(start_locations.keys())):
-            task_loc.extend(start_locations[string])
-            if (string in list(pick_loc.keys())):
-                task_loc.extend(pick_loc[string])
-            if (string in list(drop_locations.keys())):
-                task_loc.extend(drop_locations[string])
-            else:
-                print("invalid coordinate name entered! Check top of main.")
-            
+    obstacle_list = [Obstacle(obstacles[i]) for i in range(len(obstacles))]
+    map = Map(
+        origin=map_origin,
+        dim_x=map_dim_x,
+        dim_y=map_dim_y,
+        obstacles=obstacle_list,
+        drone_dim=0.1,
+        prev_map = processed_map,
+    )
+    # map.visualize_map()
+
+    # creating list to store the meters lighthouse-frame coords of each task in task list
+    task_loc = []
+    for strings in preprocessed_tasks:
+        print(str(strings))
+        if str(strings) in start_loc:
+            task_loc.append((start_loc[strings]))
+        if str(strings) in pick_loc:
+            task_loc.append((pick_loc[strings]))
+        if str(strings) in drop_loc:
+            task_loc.append((drop_loc[strings]))
+        
+    print(f"the task_loc is {task_loc}")
+
     # COMMENTED 3/9/23 moving towards func format, no more start and end
         # Select start, hover, & end points
-        start = start_locations[preprocesed_tasks[0]]
-        start_map_frame = (start[0] + map_origin[0], start[1] + map_origin[1])
-        hover_point = pick_loc[hover_bin]
-        hover_point_map_frame = (
-            hover_point[0] + map_origin[0],
-            hover_point[1] + map_origin[1],
-        )
-        end = drop_locations[preprocessed_tasks[-1]]
-        end_map_frame = (end[0] + map_origin[0], end[1] + map_origin[1])
+        # start = start_loc[preprocesed_tasks[0]]
+        # start_map_frame = (start[0] + map_origin[0], start[1] + map_origin[1])
+        # hover_point = pick_loc[hover_bin]
+        # hover_point_map_frame = (
+        #     hover_point[0] + map_origin[0],
+        #     hover_point[1] + map_origin[1],
+        # )
+        # end = drop_loc[preprocessed_tasks[-1]]
+        # end_map_frame = (end[0] + map_origin[0], end[1] + map_origin[1])
 
         # Add takeoff to sequence
         # x, y, z = start[0], start[1], 0.0
@@ -163,35 +162,44 @@ def create_multi_capable_path(droneID, processed_map=None, preprocessed_tasks)
         # x, y, z = get_pose(scf)
         # sequence.append((x, y, hover_height / 2, 0.0))
 
-        sequence.append((start[0], start[1], hover_height / 2, 0.0))
-        sequence.append((start[0], start[1], hover_height, 0.0))
 
         # performing a* on all points that are not the first point in the task list bc its the start
         # needs to initialize and then populate astar with functions Astar and Astar.a_star_search
-        seq_to_hover = []
-        for idx, locations in enumerate(preprocessed_tasks[1:]):
-            if idx < len(preprocessed_tasks[1:])-1
-                
-                next_goal_astar = Astar(
-                        map=map, start=framed_pos(locations, map_origin), 
-                        target=framed_pos(preprocessed_tasks[idx+1], map_origin)
-                        # map=map, start=start_map_frame, target=hover_point_map_frame
-                    )
-                    # !!! Kind of unsure about this datatype!
-                sequence_to_hover.extend(next_goal_astar.a_star_search())
-                
-
-                
-
-        seq_to_hover = astar_to_hover.a_star_search()
+    seq_to_hover = []
+    for idx, locations in enumerate(task_loc[1:][:]):
+        if idx < len(task_loc[1:])-1:
+            
+            next_goal_astar = Astar(
+                    map=map, start=framed_pos(task_loc[idx][:]), 
+                    target=framed_pos(task_loc[idx+1][:])
+                    # map=map, start=start_map_frame, target=hover_point_map_frame
+                )
+                # !!! Kind of unsure about this datatype!
+            seq_to_hover.append(next_goal_astar.a_star_search())
+        else:
+            break
+    
+    if len(seq_to_hover)>1:
         print("Generated hover sequence")
+    else:
+        print("Failed to generate hover sequence")
 
-        # Add first flight sequence
-        path_to_hover = map.sequence_to_path(seq=seq_to_hover)
-        for i, p in enumerate(path_to_hover):
-            path_to_hover[i] = (p[0], p[1], hover_height, 0.0)
+    # Add hover flying sequence(accomplish goals)
+    path_to_hover = map.sequence_to_path(seq=seq_to_hover)
+    for i, p in enumerate(path_to_hover):
+        path_to_hover[i] = (p[0], p[1], hover_height, 0.0)
 
-        sequence.extend(path_to_hover)
+    sequence.append(path_to_hover)
+
+        # COMMENTED BEFORE PREZ not working
+        # Add takeoff and landing to flight sequence
+        # sequence.insert(0, (path_to_hover[0][0], path_to_hover[0][1], hover_height / 2, 0.0))
+        # sequence.insert(1, (path_to_hover[0][0], path_to_hover[0][1], hover_height, 0.0))
+
+        # sequence.append((path_to_hover[-1][0], path_to_hover[-1][1], hover_height, 0.0))
+        # sequence.append((path_to_hover[-1][0], path_to_hover[-1][1], hover_height / 2, 0.0))
+        # sequence.append((path_to_hover[-1][0], path_to_hover[-1][1], 0.0, 0.0))
+
 
         # initializing the A* object to be searched
         # astar_to_drop = Astar(
@@ -200,46 +208,48 @@ def create_multi_capable_path(droneID, processed_map=None, preprocessed_tasks)
         # seq_to_drop = astar_to_drop.a_star_search()
         # print("Generated drop sequence")
 
-        sequence.extend([(hover_point[0], hover_point[1], hover_height, 0.0)] * 20)
+    # delay so that the drone stays at a certain point
+        # sequence.extend([(hover_point[0], hover_point[1], hover_height, 0.0)] * 20)
 
-        # Add second flight sequence
-        path_to_drop = map.sequence_to_path(seq=seq_to_drop)
-        for i, p in enumerate(path_to_drop):
-            path_to_drop[i] = (p[0], p[1], hover_height, 0.0)
+        # # Add second flight sequence
+        # path_to_drop = map.sequence_to_path(seq=seq_to_drop)
+        # for i, p in enumerate(path_to_drop):
+        #     path_to_drop[i] = (p[0], p[1], hover_height, 0.0)
 
-        sequence.extend(path_to_drop)
+        # sequence.extend(path_to_drop)
 
-        # Add landing to flight sequence
-        sequence.append((end[0], end[1], hover_height, 0.0))
-        sequence.append((end[0], end[1], hover_height / 2, 0.0))
-        sequence.append((end[0], end[1], 0.0, 0.0))
 
         # print(sequence)
 
-        a_star_seq = seq_to_hover + seq_to_drop
-        map.visualize_map(
-            path=a_star_seq, waypoint_names=[starting_point, hover_bin, drop_location]
-        )
+    a_star_seq = seq_to_hover
+    print(a_star_seq)
+    # map.visualize_map(
+    #     path=a_star_seq, waypoint_names=preprocessed_tasks
+    # )
 
-        for s in sequence:
-            a_star_log.write(f"{s[0]},{s[1]},{s[2]}\n")
-            a_star_log.flush()
+    # for s in sequence:
+    #     a_star_log.write(f"{s[0]},{s[1]},{s[2]}\n")
+    #     a_star_log.flush()
 
-        fig = plt.figure()
-        ax = plt.axes(projection="3d")
-        ax.scatter3D(
-            [s[0] for s in sequence], [s[1] for s in sequence], [s[2] for s in sequence]
-        )
-        ax.set_xlim([-1, 2.5])
-        ax.set_ylim([-1, 1])
-        ax.set_zlim([0, 1])
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
-        ax.set_title(
-            f"Planned Crazyflie Path\nTakeoff Loc {starting_point}, Hover @ {hover_bin}, Drop Loc {drop_location}"
-        )
-        plt.show()
+    # fig = plt.figure()
+    # ax = plt.axes(projection="3d")
+    # ax.scatter3D(
+    #     [s[0] for s in sequence], [s[1] for s in sequence], [s[2] for s in sequence]
+    # )
+    # ax.set_xlim([-1, 2.5])
+    # ax.set_ylim([-1, 1])
+    # ax.set_zlim([0, 1])
+    # ax.set_xlabel("x")
+    # ax.set_ylabel("y")
+    # ax.set_zlabel("z")
+    # ax.set_title(
+    #     f"Planned Crazyflie Path\nTakeoff Loc {preprocessed_tasks[0]}, Hover @ {preprocessed_tasks[1:-2]}, Drop Loc {preprocessed_tasks[-1]}"
+    # )
+    # plt.show()
+    return sequence, map
+
+task_strings = ["S1","P1","D1"]
+create_multi_capable_path("kevin", task_strings)
 
 
 # COMMENTED 3/9/23 commenting out code to run crazyflie
