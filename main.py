@@ -126,8 +126,11 @@ def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
         dim_y=map_dim_y,
         obstacles=obstacle_list,
         drone_dim=0.1,
-        prev_map = processed_map,
+        prev_map = processed_map
     )
+
+    # debugging statements for map
+    # print(f"the size of the map array is{(map.array[2][13])}")
     # map.visualize_map()
 
     # creating list to store the meters lighthouse-frame coords of each task in task list
@@ -140,8 +143,9 @@ def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
             task_loc.append((pick_loc[strings]))
         if str(strings) in drop_loc:
             task_loc.append((drop_loc[strings]))
-        
+    
     print(f"the task_loc is {task_loc}")
+    print(f"len of task loc for all except start is {len(task_loc[1:][:])}")
 
     # COMMENTED 3/9/23 moving towards func format, no more start and end
         # Select start, hover, & end points
@@ -165,15 +169,24 @@ def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
 
         # performing a* on all points that are not the first point in the task list bc its the start
         # needs to initialize and then populate astar with functions Astar and Astar.a_star_search
+    
+    # test the Astar
+    # test_astar = Astar(
+    #                 map=map, start=framed_pos((0,0)),
+    #                 target=framed_pos(0,1))
+    # print(f"test generated astar between known pts {test_astar.a_star_search()}")
+
     seq_to_hover = []
     for idx, locations in enumerate(task_loc[1:][:]):
+        print(f"index of the task loc enumeration is {idx} which leads to {framed_pos(task_loc[idx][:])} when framed")
         if idx < len(task_loc[1:])-1:
             
             next_goal_astar = Astar(
-                    map=map, start=framed_pos(task_loc[idx][:]), 
+                    map=map, start=framed_pos(task_loc[idx][:]),
                     target=framed_pos(task_loc[idx+1][:])
                     # map=map, start=start_map_frame, target=hover_point_map_frame
                 )
+            print(next_goal_astar.a_star_search())
                 # !!! Kind of unsure about this datatype!
             seq_to_hover.append(next_goal_astar.a_star_search())
         else:
@@ -222,9 +235,9 @@ def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
         # print(sequence)
 
     a_star_seq = seq_to_hover
-    print(a_star_seq)
+    
     # map.visualize_map(
-    #     path=a_star_seq, waypoint_names=preprocessed_tasks
+    #     # path=a_star_seq, waypoint_names=preprocessed_tasks
     # )
 
     # for s in sequence:
@@ -245,7 +258,7 @@ def create_multi_capable_path(droneID, preprocessed_tasks, processed_map=None):
     # ax.set_title(
     #     f"Planned Crazyflie Path\nTakeoff Loc {preprocessed_tasks[0]}, Hover @ {preprocessed_tasks[1:-2]}, Drop Loc {preprocessed_tasks[-1]}"
     # )
-    # plt.show()
+    plt.show()
     return sequence, map
 
 task_strings = ["S1","P1","D1"]
