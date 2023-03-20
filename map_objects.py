@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
 
 
 class Obstacle:
@@ -15,6 +18,7 @@ class Obstacle:
         self.right = max([vertex[0] for vertex in vertices])
 
 
+
 class Map:
     # here we give our start and end, and this class will calculate
     #  obstacles is a list of obstacle objects
@@ -26,6 +30,9 @@ class Map:
         self.drone_dim = drone_dim
         self.obstacles = obstacles
         self.prev_map = prev_map
+
+        fig = plt.figure()
+        self.ax = fig.add_subplot(projection='3d')
 
         self.extents = [
             (0, self.dim_y),
@@ -107,23 +114,23 @@ class Map:
                     obstacles_x.append(x)
                     obstacles_y.append(y)
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
+        for z in np.linspace(0, 0.5, 20):
+            self.ax.scatter(obstacles_x, obstacles_y, [z]*len(obstacles_x), color="black")
 
-        ax.scatter(obstacles_x, obstacles_y)
-        if path is not None:
-            ax.scatter([p[0] for p in path], [p[1] for p in path])
+        if path.all():
+            self.ax.scatter(path[:,0], path[:,1], path[:,2])
 
-        ax.set_xlim([0, len(self.array[0])])
-        ax.set_ylim([0, len(self.array)])
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
+        self.ax.set_xlim([0, len(self.array[0])])
+        self.ax.set_ylim([0, len(self.array)])
+        self.ax.set_zlim([0, 2])
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("y")
         title = "Planned Crazyflie Path"
         if waypoint_names is not None:
             title += f"\nTakeoff Loc {waypoint_names[0]}, Hover @ {waypoint_names[1]}, Drop Loc {waypoint_names[2]}"
-        ax.set_title(title)
-        plt.show()
+        self.ax.set_title(title)
 
+        # plt.show()
 
 class Node:
     """
